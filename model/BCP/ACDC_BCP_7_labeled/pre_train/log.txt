@@ -1,0 +1,1 @@
+[23:42:24.707] Namespace(root_path='/data/byh_data/SSNet_data/ACDC', exp='BCP', model='unet', pre_iterations=10000, max_iterations=30000, batch_size=24, deterministic=1, base_lr=0.01, patch_size=[256, 256], seed=1337, num_classes=4, labeled_bs=12, labelnum=7, u_weight=0.5, gpu='0', consistency=0.1, consistency_rampup=200.0, magnitude=6.0, s_param=6)
