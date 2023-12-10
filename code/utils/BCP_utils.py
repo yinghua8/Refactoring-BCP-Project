@@ -17,8 +17,8 @@ CE = nn.CrossEntropyLoss(reduction='none')
 
 def context_mask(img, mask_ratio):
     batch_size, channel, img_x, img_y, img_z = img.shape[0],img.shape[1],img.shape[2],img.shape[3],img.shape[4]
-    loss_mask = torch.ones(batch_size, img_x, img_y, img_z).cuda()
-    mask = torch.ones(img_x, img_y, img_z).cuda()
+    loss_mask = torch.ones(batch_size, img_x, img_y, img_z).cpu()
+    mask = torch.ones(img_x, img_y, img_z).cpu()
     patch_pixel_x, patch_pixel_y, patch_pixel_z = int(img_x*mask_ratio), int(img_y*mask_ratio), int(img_z*mask_ratio)
     w = np.random.randint(0, 112 - patch_pixel_x)
     h = np.random.randint(0, 112 - patch_pixel_y)
@@ -29,8 +29,8 @@ def context_mask(img, mask_ratio):
 
 def random_mask(img):
     batch_size, channel, img_x, img_y, img_z = img.shape[0],img.shape[1],img.shape[2],img.shape[3],img.shape[4]
-    loss_mask = torch.ones(batch_size, img_x, img_y, img_z).cuda()
-    mask = torch.ones(img_x, img_y, img_z).cuda()
+    loss_mask = torch.ones(batch_size, img_x, img_y, img_z).cpu()
+    mask = torch.ones(img_x, img_y, img_z).cpu()
     patch_pixel_x, patch_pixel_y, patch_pixel_z = int(img_x*2/3), int(img_y*2/3), int(img_z*2/3)
     mask_num = 27
     mask_size_x, mask_size_y, mask_size_z = int(patch_pixel_x/3)+1, int(patch_pixel_y/3)+1, int(patch_pixel_z/3)
@@ -47,7 +47,7 @@ def random_mask(img):
 
 def concate_mask(img):
     batch_size, channel, img_x, img_y, img_z = img.shape[0],img.shape[1],img.shape[2],img.shape[3],img.shape[4]
-    loss_mask = torch.ones(batch_size, img_x, img_y, img_z).cuda()
+    loss_mask = torch.ones(batch_size, img_x, img_y, img_z).cpu()
     mask = torch.ones(img_x, img_y, img_z).cuda()
     z_length = int(img_z * 8 / 27)
     z = np.random.randint(0, img_z - z_length -1)

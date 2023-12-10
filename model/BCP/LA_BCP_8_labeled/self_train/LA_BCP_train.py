@@ -29,10 +29,11 @@ from dataloaders.dataset import *
 from networks.net_factory import net_factory
 from utils.BCP_utils import context_mask, mix_loss, parameter_sharing, update_ema_variables
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--root_path', type=str, default='/data/byh_data/SSNet_data/LA', help='Name of Dataset')
+parser.add_argument('--root_path', type=str, default='D:\Master First Semester\Software Design\Final_project\BCP-main\data', help='Name of Dataset')
 parser.add_argument('--exp', type=str,  default='BCP', help='exp_name')
 parser.add_argument('--model', type=str, default='VNet', help='model_name')
 parser.add_argument('--pre_max_iteration', type=int,  default=2000, help='maximum pre-train iteration to train')
@@ -76,7 +77,7 @@ def LargestCC_pancreas(segmentation):
             largestCC = n_prob
         batch_list.append(largestCC)
     
-    return torch.Tensor(batch_list).device()
+    return torch.Tensor(batch_list).to(device)
 
 def save_net_opt(net, optimizer, path):
     state = {
@@ -110,12 +111,15 @@ if args.deterministic:
     cudnn.benchmark = False
     cudnn.deterministic = True
     torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
+    torch.get_autocast_cpu_dtype() #.manual_seed(args.seed)
     random.seed(args.seed)
     np.random.seed(args.seed)
 
 patch_size = (112, 112, 80)
 num_classes = 2
+
+def worker_init_fn(worker_id):
+    random.seed(args.seed+worker_id)
 
 def pre_train(args, snapshot_path):
     model = net_factory(net_type=args.model, in_chns=1, class_num=num_classes, mode="train")
@@ -131,8 +135,7 @@ def pre_train(args, snapshot_path):
     unlabeled_idxs = list(range(labelnum, args.max_samples))
     batch_sampler = TwoStreamBatchSampler(labeled_idxs, unlabeled_idxs, args.batch_size, args.batch_size-args.labeled_bs)
     sub_bs = int(args.labeled_bs/2)
-    def worker_init_fn(worker_id):
-        random.seed(args.seed+worker_id)
+    
     trainloader = DataLoader(db_train, batch_sampler=batch_sampler, num_workers=4, pin_memory=True, worker_init_fn=worker_init_fn)
     optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
     DICE = losses.mask_DiceLoss(nclass=2)
@@ -147,7 +150,7 @@ def pre_train(args, snapshot_path):
     for epoch_num in iterator:
         for _, sampled_batch in enumerate(trainloader):
             volume_batch, label_batch = sampled_batch['image'][:args.labeled_bs], sampled_batch['label'][:args.labeled_bs]
-            volume_batch, label_batch = volume_batch.device(), label_batch.device()
+            volume_batch, label_batch = volume_batch.to(device), label_batch.to(device)
             img_a, img_b = volume_batch[:sub_bs], volume_batch[sub_bs:]
             lab_a, lab_b = label_batch[:sub_bs], label_batch[sub_bs:]
             with torch.no_grad():
@@ -235,7 +238,7 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
     for epoch in iterator:
         for _, sampled_batch in enumerate(trainloader):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label']
-            volume_batch, label_batch = volume_batch.device(), label_batch.device()
+            volume_batch, label_batch = volume_batch.to(device), label_batch.to(device)
             img_a, img_b = volume_batch[:sub_bs], volume_batch[sub_bs:args.labeled_bs]
             lab_a, lab_b = label_batch[:sub_bs], label_batch[sub_bs:args.labeled_bs]
             unimg_a, unimg_b = volume_batch[args.labeled_bs:args.labeled_bs+sub_bs], volume_batch[args.labeled_bs+sub_bs:]
