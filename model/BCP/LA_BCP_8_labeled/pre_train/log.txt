@@ -34,3 +34,29 @@
 [10:14:27.595] iteration 4 : loss: 0.506054, loss_dice: 0.491385, loss_ce: 0.520724
 [10:15:18.522] iteration 5 : loss: 0.579334, loss_dice: 0.543342, loss_ce: 0.615326
 [10:15:31.924] iteration 6 : loss: 0.531185, loss_dice: 0.506337, loss_ce: 0.556033
+[21:15:53.574] Namespace(root_path='D:\\Master First Semester\\Software Design\\Final_project\\BCP-main\\data', exp='BCP', model='VNet', pre_max_iteration=2000, self_max_iteration=15000, max_samples=80, labeled_bs=4, batch_size=8, base_lr=0.01, deterministic=1, labelnum=8, gpu='1', seed=1337, consistency=1.0, consistency_rampup=40.0, magnitude=10.0, u_weight=0.5, mask_ratio=0.6666666666666666, u_alpha=2.0, loss_weight=0.5)
+[21:15:53.738] 2 iterations per epoch
+[21:16:22.686] iteration 1 : loss: 0.591833, loss_dice: 0.540784, loss_ce: 0.642882
+[21:16:31.405] iteration 2 : loss: 0.564734, loss_dice: 0.528725, loss_ce: 0.600743
+[21:16:56.896] iteration 3 : loss: 0.537169, loss_dice: 0.538384, loss_ce: 0.535953
+[21:17:04.885] iteration 4 : loss: 0.506054, loss_dice: 0.491385, loss_ce: 0.520724
+[21:17:22.175] iteration 5 : loss: 0.579334, loss_dice: 0.543342, loss_ce: 0.615326
+[21:17:30.392] iteration 6 : loss: 0.531185, loss_dice: 0.506337, loss_ce: 0.556033
+[21:17:52.235] iteration 7 : loss: 0.485960, loss_dice: 0.485766, loss_ce: 0.486154
+[21:18:02.262] iteration 8 : loss: 0.462248, loss_dice: 0.468563, loss_ce: 0.455933
+[21:18:23.970] iteration 9 : loss: 0.489340, loss_dice: 0.510491, loss_ce: 0.468188
+[21:18:33.826] iteration 10 : loss: 0.494093, loss_dice: 0.481415, loss_ce: 0.506771
+[21:18:59.729] iteration 11 : loss: 0.539273, loss_dice: 0.532390, loss_ce: 0.546156
+[21:19:14.224] iteration 12 : loss: 0.518737, loss_dice: 0.483856, loss_ce: 0.553618
+[22:38:26.215] Namespace(root_path='D:\\Master First Semester\\Software Design\\Final_project\\BCP-main\\data', exp='BCP', model='VNet', pre_max_iteration=2000, self_max_iteration=15000, max_samples=80, labeled_bs=4, batch_size=8, base_lr=0.01, deterministic=1, labelnum=8, gpu='1', seed=1337, consistency=1.0, consistency_rampup=40.0, magnitude=10.0, u_weight=0.5, mask_ratio=0.6666666666666666, u_alpha=2.0, loss_weight=0.5)
+[22:38:26.455] 2 iterations per epoch
+[11:03:10.927] Namespace(root_path='D:\\Master First Semester\\Software Design\\Final_project\\BCP-main\\data', exp='BCP', model='VNet', pre_max_iteration=2000, self_max_iteration=15000, max_samples=80, labeled_bs=4, batch_size=8, base_lr=0.01, deterministic=1, labelnum=8, gpu='1', seed=1337, consistency=1.0, consistency_rampup=40.0, magnitude=10.0, u_weight=0.5, mask_ratio=0.6666666666666666, u_alpha=2.0, loss_weight=0.5)
+[11:03:11.155] 2 iterations per epoch
+[11:03:42.047] iteration 1 : loss: 0.591833, loss_dice: 0.540784, loss_ce: 0.642882
+[11:03:53.333] iteration 2 : loss: 0.564734, loss_dice: 0.528725, loss_ce: 0.600743
+[11:04:33.619] iteration 3 : loss: 0.537169, loss_dice: 0.538384, loss_ce: 0.535953
+[11:04:47.194] iteration 4 : loss: 0.506054, loss_dice: 0.491385, loss_ce: 0.520724
+[11:05:19.579] iteration 5 : loss: 0.579334, loss_dice: 0.543342, loss_ce: 0.615326
+[11:05:32.429] iteration 6 : loss: 0.531185, loss_dice: 0.506337, loss_ce: 0.556033
+[11:25:21.431] Namespace(root_path='D:\\Master First Semester\\Software Design\\Final_project\\BCP-main\\data', exp='BCP', model='VNet', pre_max_iteration=2000, self_max_iteration=15000, max_samples=80, labeled_bs=4, batch_size=8, base_lr=0.01, deterministic=1, labelnum=8, gpu='1', seed=1337, consistency=1.0, consistency_rampup=40.0, magnitude=10.0, u_weight=0.5, mask_ratio=0.6666666666666666, u_alpha=2.0, loss_weight=0.5)
+[11:25:21.643] 2 iterations per epoch

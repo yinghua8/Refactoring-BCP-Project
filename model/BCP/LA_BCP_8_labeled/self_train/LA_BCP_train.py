@@ -29,6 +29,9 @@ from dataloaders.dataset import *
 from networks.net_factory import net_factory
 from utils.BCP_utils import context_mask, mix_loss, parameter_sharing, update_ema_variables
 
+import save_load_net 
+saveLoad = save_load_net.save_load_net()
+
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 
@@ -79,21 +82,6 @@ def LargestCC_pancreas(segmentation):
     
     return torch.Tensor(batch_list).to(device)
 
-def save_net_opt(net, optimizer, path):
-    state = {
-        'net': net.state_dict(),
-        'opt': optimizer.state_dict(),
-    }
-    torch.save(state, str(path))
-
-def load_net_opt(net, optimizer, path):
-    state = torch.load(str(path))
-    net.load_state_dict(state['net'])
-    optimizer.load_state_dict(state['opt'])
-
-def load_net(net, path):
-    state = torch.load(str(path))
-    net.load_state_dict(state['net'])
 
 def get_current_consistency_weight(epoch):
     # Consistency ramp-up from https://arxiv.org/abs/1610.02242
@@ -119,7 +107,7 @@ patch_size = (112, 112, 80)
 num_classes = 2
 
 def worker_init_fn(worker_id):
-    random.seed(args.seed+worker_id)
+    random.seed(args.seed + worker_id)
 
 def pre_train(args, snapshot_path):
     model = net_factory(net_type=args.model, in_chns=1, class_num=num_classes, mode="train")
@@ -156,6 +144,7 @@ def pre_train(args, snapshot_path):
             with torch.no_grad():
                 img_mask, loss_mask = context_mask(img_a, args.mask_ratio)
 
+            #mix_input()
             """Mix Input"""
             volume_batch = img_a * img_mask + img_b * (1 - img_mask)
             label_batch = lab_a * img_mask + lab_b * (1 - img_mask)
@@ -180,13 +169,7 @@ def pre_train(args, snapshot_path):
                 dice_sample = test_3d_patch.var_all_case_LA(model, num_classes=num_classes, patch_size=patch_size, stride_xy=18, stride_z=4)
                 if dice_sample > best_dice:
                     best_dice = round(dice_sample, 4)
-                    save_mode_path = os.path.join(snapshot_path,  'iter_{}_dice_{}.pth'.format(iter_num, best_dice))
-                    save_best_path = os.path.join(snapshot_path,'{}_best_model.pth'.format(args.model))
-                    save_net_opt(model, optimizer, save_mode_path)
-                    save_net_opt(model, optimizer, save_best_path)
-                    # torch.save(model.state_dict(), save_mode_path)
-                    # torch.save(model.state_dict(), save_best_path)
-                    logging.info("save best model to {}".format(save_mode_path))
+                    saveLoad.save_best_model(iter_num, best_dice, model, args.model)
                 writer.add_scalar('4_Var_dice/Dice', dice_sample, iter_num)
                 writer.add_scalar('4_Var_dice/Best_dice', best_dice, iter_num)
                 model.train()
@@ -199,6 +182,7 @@ def pre_train(args, snapshot_path):
             break
     writer.close()
 
+#def mix_input():
 
 def self_train(args, pre_snapshot_path, self_snapshot_path):
     model = net_factory(net_type=args.model, in_chns=1, class_num=num_classes, mode="train")
@@ -223,8 +207,8 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
     optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
 
     pretrained_model = os.path.join(pre_snapshot_path, f'{args.model}_best_model.pth')
-    load_net(model, pretrained_model)
-    load_net(ema_model, pretrained_model)
+    saveLoad.load_net(model, pretrained_model)
+    saveLoad.load_net(ema_model, pretrained_model)
     
     model.train()
     ema_model.train()
@@ -239,10 +223,12 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
         for _, sampled_batch in enumerate(trainloader):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label']
             volume_batch, label_batch = volume_batch.to(device), label_batch.to(device)
+            # extract indicating 
             img_a, img_b = volume_batch[:sub_bs], volume_batch[sub_bs:args.labeled_bs]
             lab_a, lab_b = label_batch[:sub_bs], label_batch[sub_bs:args.labeled_bs]
             unimg_a, unimg_b = volume_batch[args.labeled_bs:args.labeled_bs+sub_bs], volume_batch[args.labeled_bs+sub_bs:]
             with torch.no_grad():
+                # extract model training process
                 unoutput_a, _ = ema_model(unimg_a)
                 unoutput_b, _ = ema_model(unimg_b)
                 plab_a = get_cut_mask(unoutput_a, nms=1)
@@ -260,6 +246,8 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
             loss_u = mix_loss(outputs_u, plab_b, lab_b, loss_mask, u_weight=args.u_weight, unlab=True)
 
             loss = loss_l + loss_u
+
+            #loss = BCP_method()
 
             iter_num += 1
             writer.add_scalar('Self/consistency', consistency_weight, iter_num)
@@ -285,13 +273,8 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
                 dice_sample = test_3d_patch.var_all_case_LA(model, num_classes=num_classes, patch_size=patch_size, stride_xy=18, stride_z=4)
                 if dice_sample > best_dice:
                     best_dice = round(dice_sample, 4)
-                    save_mode_path = os.path.join(self_snapshot_path,  'iter_{}_dice_{}.pth'.format(iter_num, best_dice))
-                    save_best_path = os.path.join(self_snapshot_path,'{}_best_model.pth'.format(args.model))
-                    # save_net_opt(model, optimizer, save_mode_path)
-                    # save_net_opt(model, optimizer, save_best_path)
-                    torch.save(model.state_dict(), save_mode_path)
-                    torch.save(model.state_dict(), save_best_path)
-                    logging.info("save best model to {}".format(save_mode_path))
+                    saveLoad.save_best_model(self_snapshot_path, iter_num, best_dice, model)
+
                 writer.add_scalar('4_Var_dice/Dice', dice_sample, iter_num)
                 writer.add_scalar('4_Var_dice/Best_dice', best_dice, iter_num)
                 model.train()
@@ -299,29 +282,16 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
             if iter_num % 200 == 1:
                 ins_width = 2
                 B,C,H,W,D = outputs_l.size()
-                snapshot_img = torch.zeros(size = (D, 3, 3*H + 3 * ins_width, W + ins_width), dtype = torch.float32)
 
-                snapshot_img[:,:, H:H+ ins_width,:] = 1
-                snapshot_img[:,:, 2*H + ins_width:2*H + 2*ins_width,:] = 1
-                snapshot_img[:,:, 3*H + 2*ins_width:3*H + 3*ins_width,:] = 1
-                snapshot_img[:,:, :,W:W+ins_width] = 1
+                snapshot_img = init_snapshot(H, W, D, ins_width)
 
                 outputs_l_soft = F.softmax(outputs_l, dim=1)
+                #permute: change the order in list according to given order
                 seg_out = outputs_l_soft[0,1,...].permute(2,0,1) # y
                 target =  mixl_lab[0,...].permute(2,0,1)
                 train_img = mixl_img[0,0,...].permute(2,0,1)
 
-                snapshot_img[:, 0,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
-                snapshot_img[:, 1,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
-                snapshot_img[:, 2,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
-
-                snapshot_img[:, 0, H+ ins_width:2*H+ ins_width,:W] = target
-                snapshot_img[:, 1, H+ ins_width:2*H+ ins_width,:W] = target
-                snapshot_img[:, 2, H+ ins_width:2*H+ ins_width,:W] = target
-
-                snapshot_img[:, 0, 2*H+ 2*ins_width:3*H+ 2*ins_width,:W] = seg_out
-                snapshot_img[:, 1, 2*H+ 2*ins_width:3*H+ 2*ins_width,:W] = seg_out
-                snapshot_img[:, 2, 2*H+ 2*ins_width:3*H+ 2*ins_width,:W] = seg_out
+                create_snapshot_img(H, W, snapshot_img, train_img, ins_width, target, seg_out)
                 
                 writer.add_images('Epoch_%d_Iter_%d_labeled'% (epoch, iter_num), snapshot_img)
 
@@ -330,17 +300,7 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
                 target =  mixu_lab[0,...].permute(2,0,1)
                 train_img = mixu_img[0,0,...].permute(2,0,1)
 
-                snapshot_img[:, 0,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
-                snapshot_img[:, 1,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
-                snapshot_img[:, 2,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
-
-                snapshot_img[:, 0, H+ ins_width:2*H+ ins_width,:W] = target
-                snapshot_img[:, 1, H+ ins_width:2*H+ ins_width,:W] = target
-                snapshot_img[:, 2, H+ ins_width:2*H+ ins_width,:W] = target
-
-                snapshot_img[:, 0, 2*H+ 2*ins_width:3*H+ 2*ins_width,:W] = seg_out
-                snapshot_img[:, 1, 2*H+ 2*ins_width:3*H+ 2*ins_width,:W] = seg_out
-                snapshot_img[:, 2, 2*H+ 2*ins_width:3*H+ 2*ins_width,:W] = seg_out
+                create_snapshot_img(H, W, snapshot_img, train_img, ins_width, target, seg_out)
 
                 writer.add_images('Epoch_%d_Iter_%d_unlabel'% (epoch, iter_num), snapshot_img)
 
@@ -352,6 +312,21 @@ def self_train(args, pre_snapshot_path, self_snapshot_path):
             break
     writer.close()
 
+
+
+def init_snapshot(H, W, D, ins_width):
+    snapshot_img = torch.zeros(size = (D, 3, 3 * H + 3 * ins_width, W + ins_width), dtype = torch.float32)
+    snapshot_img[:,:, H:H + ins_width,:] = 1
+    snapshot_img[:,:, 2 * H + ins_width:2 * H + 2 * ins_width,:] = 1
+    snapshot_img[:,:, 3 * H + 2 * ins_width:3 * H + 3 * ins_width,:] = 1
+    snapshot_img[:,:, :, W:W + ins_width] = 1
+    return snapshot_img
+
+def create_snapshot_img(H, W, snapshot_img, train_img, ins_width, target, seg_out):
+    for i in range(3):
+        snapshot_img[:, i,:H,:W] = (train_img-torch.min(train_img))/(torch.max(train_img)-torch.min(train_img))
+        snapshot_img[:, i, H + ins_width:2 * H + ins_width,:W] = target
+        snapshot_img[:, i, 2 * H + 2 * ins_width:3 * H + 2 * ins_width,:W] = seg_out
 
 if __name__ == "__main__":
     ## make logger file
