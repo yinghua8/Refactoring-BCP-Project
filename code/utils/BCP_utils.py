@@ -6,13 +6,37 @@ import numpy as np
 import torch.nn as nn
 import torch
 import random
+import torch.nn.functional as F
 from utils.losses import mask_DiceLoss
 from scipy.ndimage import distance_transform_edt as distance
 from skimage import segmentation as skimage_seg
+from skimage.measure import label
 
 DICE = mask_DiceLoss(nclass=2)
 CE = nn.CrossEntropyLoss(reduction='none')
+device = torch.device("cpu")
 
+def get_cut_mask(out, thres=0.5, nms=0):
+    probs = F.softmax(out, 1)
+    masks = (probs >= thres).type(torch.int64)
+    masks = masks[:, 1, :, :].contiguous()
+    if nms == 1:
+        masks = LargestCC_pancreas(masks)
+    return masks
+
+def LargestCC_pancreas(segmentation):
+    N = segmentation.shape[0]
+    batch_list = []
+    for n in range(N):
+        n_prob = segmentation[n].detach().cpu().numpy()
+        labels = label(n_prob)
+        if labels.max() != 0:
+            largestCC = labels == np.argmax(np.bincount(labels.flat)[1:])+1
+        else:
+            largestCC = n_prob
+        batch_list.append(largestCC)
+    
+    return torch.Tensor(batch_list).to(device)
 
 
 def context_mask(img, mask_ratio):
