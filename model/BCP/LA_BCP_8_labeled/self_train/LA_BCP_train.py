@@ -59,8 +59,6 @@ parser.add_argument('--u_alpha', type=float, default=2.0, help='unlabeled image 
 parser.add_argument('--loss_weight', type=float, default=0.5, help='loss weight of unimage term')
 args = parser.parse_args()
 
-#CE = nn.CrossEntropyLoss(reduction='none')
-
 if args.deterministic:
     cudnn.benchmark = False
     cudnn.deterministic = True
