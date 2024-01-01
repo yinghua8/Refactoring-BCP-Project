@@ -3,30 +3,16 @@ import imp
 import os
 from sre_parse import SPECIAL_CHARS
 import sys
-from xml.etree.ElementInclude import default_loader
-from tqdm import tqdm
-from tensorboardX import SummaryWriter
 import shutil
 import argparse
 import logging
 import random
 import numpy as np
-from medpy import metric
 import torch
-import torch.optim as optim
-from torchvision import transforms
-import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-import torch.nn as nn
-import pdb
 
 from yaml import parse
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-from utils import losses, ramps, feature_memory, contrastive_losses, test_3d_patch
 from dataloaders.dataset import *
-from networks.net_factory import net_factory
-from utils.BCP_utils import context_mask, mix_loss, parameter_sharing, update_ema_variables
 
 import save_load_net 
 from LA_training import LA_train
@@ -70,6 +56,11 @@ if args.deterministic:
 patch_size = (112, 112, 80)
 num_classes = 2
 
+def log_train_info(path):
+    logging.basicConfig(filename = path+"/log.txt", level=logging.INFO, format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
+    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+    logging.info(str(args))
+
 if __name__ == "__main__":
     ## make logger file
     pre_snapshot_path = "./model/BCP/LA_{}_{}_labeled/pre_train".format(args.exp, args.labelnum)
@@ -81,16 +72,12 @@ if __name__ == "__main__":
         if os.path.exists(snapshot_path + '/code'):
             shutil.rmtree(snapshot_path + '/code')
     shutil.copy('./code/LA_BCP_train.py', self_snapshot_path)
-    # -- Pre-Training
-    logging.basicConfig(filename=pre_snapshot_path+"/log.txt", level=logging.INFO, format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-    logging.info(str(args))
-    train_class = LA_train(args, num_classes, patch_size)
-    train_class.pre_train(pre_snapshot_path)
-    # -- Self-training
-    logging.basicConfig(filename=self_snapshot_path+"/log.txt", level=logging.INFO, format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-    logging.info(str(args))
-    train_class.self_train(pre_snapshot_path, self_snapshot_path, num_classes, patch_size)
 
-    
+    train_class = LA_train(args, num_classes, patch_size)
+    # -- Pre-Training
+    log_train_info(pre_snapshot_path)
+    train_class.pre_train(pre_snapshot_path)
+  
+    # -- Self-training
+    log_train_info(self_snapshot_path)
+    train_class.self_train(pre_snapshot_path, self_snapshot_path, num_classes, patch_size)

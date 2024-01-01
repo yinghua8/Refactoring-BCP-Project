@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch
 import random
 import torch.nn.functional as F
-from utils.losses import mask_DiceLoss
+from utils.losses import *
 from scipy.ndimage import distance_transform_edt as distance
 from skimage import segmentation as skimage_seg
 from skimage.measure import label
