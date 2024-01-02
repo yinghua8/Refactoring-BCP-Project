@@ -43,7 +43,7 @@ class LA_train:
 
         trainloader = DataLoader(self.db_train, batch_sampler=batch_sampler, num_workers=4, pin_memory=True, worker_init_fn = self._worker_init_fn)
         optimizer = optim.SGD(self.model.parameters(), lr = self.base_lr, momentum=0.9, weight_decay=0.0001)
-        DICE = losses.mask_DiceLoss(nclass=2)
+        DICE = losses.mask_DiceLoss(n_classes=2)
 
         self.model.train()
         writer = SummaryWriter(snapshot_path+'/log')

@@ -7,73 +7,21 @@ import numpy as np
 
 class Loss(nn.Module):
     def __init__(self, n_classes):
-        def __init__(self, nclass, class_weights=None, smooth=1e-5):
-            super(Loss, self).__init__(nclass)
-            self.smooth = smooth
-            if class_weights is None:
-                self.class_weights = nn.Parameter(torch.ones((1, nclass)).type(torch.float32), requires_grad=False)
-            else:
-                class_weights = np.array(class_weights)
-                assert nclass == class_weights.shape[0]
-                self.class_weights = nn.Parameter(torch.tensor(class_weights, dtype=torch.float32), requires_grad=False)
-
-    def prob_forward(self, pred, target, mask=None):
-        size = pred.size()
-        N, nclass = size[0], size[1]
-        pred_one_hot = pred.view(N, nclass, -1)
-        target = target.view(N, 1, -1)
-        target_one_hot = self.to_one_hot(target.type(torch.long), nclass).type(torch.float32)
-
-        inter = pred_one_hot * target_one_hot
-        union = pred_one_hot + target_one_hot
-
-        if mask is not None:
-            mask = mask.view(N, 1, -1)
-            inter = (inter.view(N, nclass, -1) * mask).sum(2)
-            union = (union.view(N, nclass, -1) * mask).sum(2)
-        else:
-            inter = inter.view(N, nclass, -1).sum(2)
-            union = union.view(N, nclass, -1).sum(2)
-
-        dice = (2 * inter + self.smooth) / (union + self.smooth)
-        return 1 - dice.mean()
-
-    def forward(self, logits, target, mask=None):
-        size = logits.size()
-        N, nclass = size[0], size[1]
-
-        logits = logits.view(N, nclass, -1)
-        target = target.view(N, 1, -1)
-
-        pred, nclass = self.get_probability(logits)
-
-        pred_one_hot = pred
-        target_one_hot = self.to_one_hot(target.type(torch.long), nclass).type(torch.float32)
-
-        inter = pred_one_hot * target_one_hot
-        union = pred_one_hot + target_one_hot
-
-        if mask is not None:
-            mask = mask.view(N, 1, -1)
-            inter = (inter.view(N, nclass, -1) * mask).sum(2)
-            union = (union.view(N, nclass, -1) * mask).sum(2)
-        else:
-            inter = inter.view(N, nclass, -1).sum(2)
-            union = union.view(N, nclass, -1).sum(2)
-
-        dice = (2 * inter + self.smooth) / (union + self.smooth)
-        return 1 - dice.mean()
+        super(Loss, self).__init__()
+        self.n_classes = n_classes
+    def forward(self, inputs, target, mask=None, weight=None, softmax=False):
+        pass
 
 class mask_DiceLoss(Loss):
-    def __init__(self, nclass, class_weights=None, smooth=1e-5):
-        super(mask_DiceLoss, self).__init__()
+    def __init__(self, n_classes, class_weights=None, smooth=1e-5):
+        super(mask_DiceLoss, self).__init__(n_classes)
         self.smooth = smooth
         if class_weights is None:
             # default weight is all 1
-            self.class_weights = nn.Parameter(torch.ones((1, nclass)).type(torch.float32), requires_grad=False)
+            self.class_weights = nn.Parameter(torch.ones((1, n_classes)).type(torch.float32), requires_grad=False)
         else:
             class_weights = np.array(class_weights)
-            assert nclass == class_weights.shape[0]
+            assert n_classes == class_weights.shape[0]
             self.class_weights = nn.Parameter(torch.tensor(class_weights, dtype=torch.float32), requires_grad=False)
 
     def prob_forward(self, pred, target, mask=None):
@@ -137,7 +85,7 @@ class mask_DiceLoss(Loss):
 
 class DiceLoss(Loss):
     def __init__(self, n_classes):
-        super(DiceLoss, self).__init__()
+        super(DiceLoss, self).__init__(n_classes)
         self.n_classes = n_classes
 
     def _one_hot_encoder(self, input_tensor):
@@ -185,7 +133,7 @@ class DiceLoss(Loss):
 
 class CrossEntropyLoss(Loss):
     def __init__(self, n_classes):
-        super(CrossEntropyLoss, self).__init__()
+        super(CrossEntropyLoss, self).__init__(n_classes)
         self.class_num = n_classes
 
     def _one_hot_encoder(self, input_tensor):
@@ -255,15 +203,15 @@ def get_probability(logits):
     return pred, nclass
 
 class Dice_Loss(Loss):
-    def __init__(self, nclass, class_weights=None, smooth=1e-5):
-        super(Dice_Loss, self).__init__()
+    def __init__(self, n_classes, class_weights=None, smooth=1e-5):
+        super(Dice_Loss, self).__init__(n_classes)
         self.smooth = smooth
         if class_weights is None:
             # default weight is all 1
-            self.class_weights = nn.Parameter(torch.ones((1, nclass)).type(torch.float32), requires_grad=False)
+            self.class_weights = nn.Parameter(torch.ones((1, n_classes)).type(torch.float32), requires_grad=False)
         else:
             class_weights = np.array(class_weights)
-            assert nclass == class_weights.shape[0]
+            assert n_classes == class_weights.shape[0]
             self.class_weights = nn.Parameter(torch.tensor(class_weights, dtype=torch.float32), requires_grad=False)
 
     def prob_forward(self, pred, target, mask=None):
@@ -333,7 +281,7 @@ def Binary_dice_loss(predictive, target, ep=1e-8):
 
 class softDiceLoss(Loss):
     def __init__(self, n_classes):
-        super(softDiceLoss, self).__init__()
+        super(softDiceLoss, self).__init__(n_classes)
         self.n_classes = n_classes
 
     def _dice_loss(self, score, target):

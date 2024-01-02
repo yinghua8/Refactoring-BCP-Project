@@ -12,7 +12,7 @@ from scipy.ndimage import distance_transform_edt as distance
 from skimage import segmentation as skimage_seg
 from skimage.measure import label
 
-DICE = mask_DiceLoss(nclass=2)
+DICE = mask_DiceLoss(n_classes=2)
 CE = nn.CrossEntropyLoss(reduction='none')
 device = torch.device("cpu")
 
